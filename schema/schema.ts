@@ -181,6 +181,27 @@ export interface ServerCapabilities {
    */
   experimental?: { [key: string]: object };
   /**
+   * Present if the server supports arbitrary client-supplied configuration.
+   */
+  configuration?: {
+    /**
+     * If true, the client MUST supply a configuration before initiating any requests other than `InitializeRequest`, `PingRequest`, and `SetLevelRequest`.
+     *
+     * If false, configuration is optional.
+     *
+     * This field defaults to false if not given.
+     */
+    required?: boolean;
+
+    /**
+     * A JSON Schema object defining the expected configuration properties.
+     */
+    schema: {
+      type: "object";
+      properties: { [key: string]: object };
+    };
+  };
+  /**
    * Present if the server supports sending log messages to the client.
    */
   logging?: object;
@@ -276,6 +297,24 @@ export interface PaginatedResult extends Result {
    * If present, there may be more results available.
    */
   nextCursor?: Cursor;
+}
+
+/* Configuration */
+/**
+ * Sent from the client to supply arbitrary configuration to the server.
+ *
+ * This can be used to pass along options that the user has specified, based on their own knowledge of the server or a client UI describing them. For example, with a database MCP server, this could be used to supply the database URL, database name, and/or a table name which should apply to all subsequent operations.
+ */
+export interface SetConfigurationRequest extends Request {
+  method: "configuration/set";
+  params: {
+    /**
+     * The configuration values.
+     *
+     * The structure of this object MUST match what the server previously specified in `ServerCapabilities.configuration.schema`.
+     */
+    configuration: { [key: string]: unknown };
+  };
 }
 
 /* Resources */
@@ -615,7 +654,7 @@ export interface CallToolResult extends Result {
 
   /**
    * Whether the tool call ended in an error.
-   * 
+   *
    * If not set, this is assumed to be false (the call was successful).
    */
   isError?: boolean;
@@ -865,12 +904,12 @@ export interface ModelPreferences {
 export interface ModelHint {
   /**
    * A hint for a model name.
-   * 
+   *
    * The client SHOULD treat this as a substring of a model name; for example:
    *  - `claude-3-5-sonnet` should match `claude-3-5-sonnet-20241022`
    *  - `sonnet` should match `claude-3-5-sonnet-20241022`, `claude-3-sonnet-20240229`, etc.
    *  - `claude` should match any Claude model
-   * 
+   *
    * The client MAY also map the string to a different provider's model name or a different model family, as long as it fills a similar niche; for example:
    *  - `gemini-1.5-flash` could match `claude-3-haiku-20240307`
    */
@@ -1001,6 +1040,7 @@ export interface RootsListChangedNotification extends Notification {
 export type ClientRequest =
   | PingRequest
   | InitializeRequest
+  | SetConfigurationRequest
   | CompleteRequest
   | SetLevelRequest
   | GetPromptRequest

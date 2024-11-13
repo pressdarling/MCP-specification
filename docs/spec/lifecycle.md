@@ -12,8 +12,11 @@ Initialization
 Capability Exchange
 : The client and server exchange information about their supported features and protocol versions.
 
+Configuration (Optional)
+: If the server requires or supports configuration, the client MUST or MAY (respectively) send a `configuration/set` request.
+
 Normal Operation
-: After successful initialization, the client and server can freely communicate using the agreed-upon protocol.
+: After successful initialization (and configuration, if required), the client and server can freely communicate using the agreed-upon protocol.
 
 Shutdown
 : The connection is terminated, typically initiated by the client when it no longer needs the server's services.
@@ -31,6 +34,10 @@ sequenceDiagram
     Note over Client,Server: Includes protocol version, server capabilities
     Client->>Server: initialized notification
     Note over Client,Server: Signals completion of initialization
+    opt Server supports configuration
+        Client->>Server: configuration/set request
+        Server->>Client: SetConfigurationResult
+    end
     rect rgb(200, 220, 240)
         Note over Client,Server: Normal Operation
         Client->>Server: Various requests (e.g., list resources, get prompts)
@@ -41,7 +48,7 @@ sequenceDiagram
     Client->>Server: Shutdown (implementation-specific)
 ```
 
-This sequence ensures that both parties are aware of each other's capabilities and agree on the protocol version to be used for further communication.
+This sequence ensures that both parties are aware of each other's capabilities, agree on the protocol version to be used for further communication, and are properly configured if necessary.
 
 
 # Details
@@ -120,7 +127,22 @@ The server **MUST** respond to the initialize request with an `InitializeResult`
           "resources": {
             "subscribe": true
           },
-          "tools": {}
+          "tools": {},
+          "configuration": {
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "databaseUrl": {
+                  "type": "string"
+                },
+                "apiKey": {
+                  "type": "string"
+                }
+              },
+              "required": ["databaseUrl", "apiKey"]
+            }
+          }
         },
         "serverInfo": {
           "name": "ExampleServer",
@@ -158,6 +180,13 @@ export interface ServerCapabilities {
     subscribe?: boolean;
   };
   tools?: {};
+  configuration?: {
+    required?: boolean;
+    schema: {
+      type: "object";
+      properties: { [key: string]: object };
+    };
+  };
 }
 ```
 
@@ -175,12 +204,51 @@ Server Capabilities:
 - `prompts`: If present, indicates that the server offers prompt templates.
 - `resources`: If present, indicates that the server offers resources to read. The `subscribe` property within this object indicates whether the server supports subscribing to resource updates.
 - `tools`: If present, indicates that the server offers tools to call.
+- `configuration`: If present, indicates that the server supports or requires configuration, and the schema it follows. A `required` boolean flag indicates whether configuration MUST be given by the client.
 
 These capabilities allow the client and server to communicate their supported features, enabling them to adapt their behavior accordingly and utilize the full range of supported functionalities during their interaction.
 
+## Configuration
+
+If the server's capabilities include `configuration`…
+
+1. And the `required` flag is set to `true`, the client **MUST** send a `configuration/set` request before proceeding with normal operation.
+1. Otherwise, the client **MAY** send a `configuration/set` request.
+
+The `configuration/set` request is structured as follows:
+
+```typescript
+export interface SetConfigurationRequest extends Request {
+  method: "configuration/set";
+  params: {
+    configuration: { [key: string]: unknown };
+  };
+}
+```
+
+For example:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 2,
+  "method": "configuration/set",
+  "params": {
+    "configuration": {
+      "databaseUrl": "postgresql://user:password@localhost/mydb",
+      "apiKey": "sk-1234567890abcdef"
+    }
+  }
+}
+```
+
+The `configuration` object in the params should match the schema provided by `configuration.schema` in the server capabilities.
+
+The server should respond with a success result if the configuration is accepted, or an error if the configuration is invalid or incomplete.
+
 ## Normal Operation
 
-After successful initialization, the client **MUST** send an `initialized` notification to the server:
+After successful initialization (and configuration, if required), the client **MUST** send an `initialized` notification to the server:
 
 ```typescript
 export interface InitializedNotification extends Notification {

@@ -140,6 +140,9 @@
                     "$ref": "#/definitions/PingRequest"
                 },
                 {
+                    "$ref": "#/definitions/SetConfigurationRequest"
+                },
+                {
                     "$ref": "#/definitions/ListResourcesRequest"
                 },
                 {
@@ -1605,6 +1608,41 @@
         "ServerCapabilities": {
             "description": "Capabilities that a server may support. Known capabilities are defined here, in this schema, but this is not a closed set: any server can define its own, additional capabilities.",
             "properties": {
+                "configuration": {
+                    "description": "Present if the server supports arbitrary client-supplied configuration.",
+                    "properties": {
+                        "required": {
+                            "description": "If true, the client MUST supply a configuration before initiating any requests other than `InitializeRequest`, `PingRequest`, and `SetLevelRequest`.\n\nIf false, configuration is optional.\n\nThis field defaults to false if not given.",
+                            "type": "boolean"
+                        },
+                        "schema": {
+                            "description": "A JSON Schema object defining the expected configuration properties.",
+                            "properties": {
+                                "properties": {
+                                    "additionalProperties": {
+                                        "additionalProperties": true,
+                                        "properties": {},
+                                        "type": "object"
+                                    },
+                                    "type": "object"
+                                },
+                                "type": {
+                                    "const": "object",
+                                    "type": "string"
+                                }
+                            },
+                            "required": [
+                                "properties",
+                                "type"
+                            ],
+                            "type": "object"
+                        }
+                    },
+                    "required": [
+                        "schema"
+                    ],
+                    "type": "object"
+                },
                 "experimental": {
                     "additionalProperties": {
                         "additionalProperties": true,
@@ -1722,6 +1760,33 @@
                     "$ref": "#/definitions/CompleteResult"
                 }
             ]
+        },
+        "SetConfigurationRequest": {
+            "description": "Sent from the client to supply arbitrary configuration to the server.\n\nThis can be used to pass along options that the user has specified, based on their own knowledge of the server or a client UI describing them. For example, with a database MCP server, this could be used to supply the database URL, database name, and/or a table name which should apply to all subsequent operations.",
+            "properties": {
+                "method": {
+                    "const": "configuration/set",
+                    "type": "string"
+                },
+                "params": {
+                    "properties": {
+                        "configuration": {
+                            "additionalProperties": {},
+                            "description": "The configuration values.\n\nThe structure of this object MUST match what the server previously specified in `ServerCapabilities.configuration.schema`.",
+                            "type": "object"
+                        }
+                    },
+                    "required": [
+                        "configuration"
+                    ],
+                    "type": "object"
+                }
+            },
+            "required": [
+                "method",
+                "params"
+            ],
+            "type": "object"
         },
         "SetLevelRequest": {
             "description": "A request from the client to the server, to enable or adjust logging.",
