@@ -14,7 +14,7 @@ The Model Context Protocol currently supports authentication through OAuth 2.0. 
 
 ## Authentication Flow
 
-MCP servers **MAY** require authentication for any request. When authentication is required, servers **MUST** respond with *HTTP 401 Unauthorized*. Clients **MUST** then initiate the OAuth 2.0 authentication flow.
+MCP servers **MAY** require authentication for any request. When authentication is required and has not been provided, servers **MUST** respond with *HTTP 401 Unauthorized*. Clients **MUST** then initiate the OAuth 2.0 authentication flow.
 
 The basic authentication flow is as follows:
 
