@@ -10,7 +10,7 @@ weight: 15
 
 ## Overview
 
-The Model Context Protocol currently supports authentication through OAuth 2.0. Authentication is only available when using HTTP transport. Authentication occurs at the transport level. This specification defines how clients authenticate with MCP servers using standard OAuth 2.0 flows.
+The Model Context Protocol currently supports authentication through OAuth 2.0. Authentication is only available when using an HTTP transport (such as SSE). Authentication occurs at the transport level. This specification defines how clients authenticate with MCP servers using standard OAuth 2.0 flows.
 
 ## Authentication Flow
 
